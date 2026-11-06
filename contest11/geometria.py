@@ -37,6 +37,16 @@ class Ponto:
         return abs(p.x - q.x) <= Ponto._EPS and abs(p.y - q.y) <= Ponto._EPS
     
     @staticmethod
+    def colineares(a: "Ponto", b: "Ponto", c: "Ponto") -> bool:
+        """Verifica colinearidade por direcionais iguais ou opostos, incluindo pontos repetidos."""
+        ab, bc = Vetor(a, b), Vetor(b, c)
+        if ab.eh_nulo or bc.eh_nulo:
+            return True
+
+        u, v = ab.vetor_direcional, bc.vetor_direcional
+        return u.igual(v) or Vetor.sao_opostos(u, v)
+
+    @staticmethod
     def distancia(p: "Ponto", q: "Ponto") -> float:
         """Retorna a distância euclidiana entre dois pontos."""
         return hypot(p.x - q.x, p.y - q.y)
@@ -107,6 +117,11 @@ class Vetor:
         """Compara as duas componentes com tolerância _EPS."""
         return abs(self.x - outro.x) <= self._EPS and abs(self.y - outro.y) <= self._EPS
 
+    @staticmethod
+    def sao_opostos(u: "Vetor", v: "Vetor") -> bool:
+        """Verifica se u e v têm componentes opostas, com tolerância _EPS."""
+        return abs(u.x + v.x) <= Vetor._EPS and abs(u.y + v.y) <= Vetor._EPS
+
     def perpendicular(self, outro: "Vetor") -> bool:
         """Testa produto escalar próximo de zero; vetores nulos retornam False."""
         return Vetor.sao_perpendiculares(self, outro)
@@ -133,6 +148,11 @@ class Vetor:
     def eh_nulo(self) -> bool:
         """Verifica se ambas as componentes são exatamente zero."""
         return self.x == 0 and self.y == 0
+
+    @property
+    def eh_quase_nulo(self) -> bool:
+        """Verifica se ambas as componentes são zero dentro da tolerância _EPS."""
+        return abs(self.x) <= self._EPS and abs(self.y) <= self._EPS
 
     @property
     def modulo(self) -> float:
