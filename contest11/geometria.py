@@ -1,6 +1,7 @@
-from dataclasses import dataclass
-from math import hypot
-from typing import ClassVar
+from dataclasses import dataclass, field
+from math import atan2, cos, degrees, hypot, radians, sin
+from operator import attrgetter
+from typing import ClassVar, List, Optional
 
 
 EPS = 1e-9
@@ -12,6 +13,11 @@ class Ponto:
 
     x: float = 0
     y: float = 0
+
+    @staticmethod
+    def ordena(pontos: List["Ponto"]) -> List["Ponto"]:
+        """Ordena por x, depois y, em O(n log n), sem alterar a lista original."""
+        return sorted(pontos, key=attrgetter("x", "y"))
 
     def igual(self, outro: "Ponto") -> bool:
         """Verifica se outro é igual a este ponto, com tolerância _EPS."""
@@ -51,3 +57,144 @@ class Ponto:
     def transladar(p: "Ponto", dx: float, dy: float) -> "Ponto":
         """Retorna um novo ponto deslocado por (dx, dy)."""
         return Ponto(p.x + dx, p.y + dy)
+
+
+@dataclass(frozen=True)
+class Vetor:
+    """Vetor bidimensional representado por suas componentes x e y."""
+
+    _EPS: ClassVar[float] = EPS
+    origem: ClassVar[Ponto] = Ponto(0, 0)
+
+    x: float = 0
+    y: float = 0
+    _modulo: float = field(init=False, repr=False, compare=False)
+    _angulo_radianos: Optional[float] = field(init=False, repr=False, compare=False)
+    _angulo_graus: Optional[float] = field(init=False, repr=False, compare=False)
+    _vetor_direcional: Optional["Vetor"] = field(init=False, repr=False, compare=False)
+
+    def __init__(self, a: Ponto, b: Optional[Ponto] = None):
+        """Cria o vetor da origem até a, ou de a até b quando b é informado."""
+        if b is None:
+            b = Vetor.origem
+            a, b = b, a
+
+        x, y = b.x - a.x, b.y - a.y
+
+        object.__setattr__(self, "x", x)
+        object.__setattr__(self, "y", y)
+
+        modulo = hypot(x, y)
+        rad = atan2(y, x) if modulo != 0 else None
+        graus = degrees(rad) if rad is not None else None
+        object.__setattr__(self, "_modulo", modulo)
+        object.__setattr__(self, "_angulo_radianos", rad)
+        object.__setattr__(self, "_angulo_graus", graus)
+
+        unitario = None
+        if modulo != 0:
+            # Evita chamar __init__ recursivamente para criar o vetor unitário.
+            unitario = object.__new__(Vetor)
+            object.__setattr__(unitario, "x", x / modulo)
+            object.__setattr__(unitario, "y", y / modulo)
+            object.__setattr__(unitario, "_modulo", 1.0)
+            object.__setattr__(unitario, "_angulo_radianos", rad)
+            object.__setattr__(unitario, "_angulo_graus", graus)
+            object.__setattr__(unitario, "_vetor_direcional", unitario)
+        object.__setattr__(self, "_vetor_direcional", unitario)
+
+    def igual(self, outro: "Vetor") -> bool:
+        """Compara as duas componentes com tolerância _EPS."""
+        return abs(self.x - outro.x) <= self._EPS and abs(self.y - outro.y) <= self._EPS
+
+    def perpendicular(self, outro: "Vetor") -> bool:
+        """Testa produto escalar próximo de zero; vetores nulos retornam False."""
+        return Vetor.sao_perpendiculares(self, outro)
+
+    def paralelo(self, outro: "Vetor") -> bool:
+        """Testa produto vetorial próximo de zero; vetores nulos retornam False."""
+        return Vetor.sao_paralelos(self, outro)
+
+    @staticmethod
+    def sao_perpendiculares(u: "Vetor", v: "Vetor") -> bool:
+        """Compara o produto escalar com zero usando tolerância absoluta _EPS."""
+        if u.modulo == 0 or v.modulo == 0:
+            return False
+        return abs(Vetor.produto_escalar(u, v)) <= Vetor._EPS
+
+    @staticmethod
+    def sao_paralelos(u: "Vetor", v: "Vetor") -> bool:
+        """Compara o produto vetorial com zero; inclui sentidos opostos e rejeita nulos."""
+        if u.modulo == 0 or v.modulo == 0:
+            return False
+        return abs(Vetor.produto_vetorial(u, v)) <= Vetor._EPS
+
+    @property
+    def modulo(self) -> float:
+        """Retorna o comprimento do vetor."""
+        return self._modulo
+
+    @property
+    def angulo_graus(self) -> float:
+        """Retorna o ângulo em graus com o eixo x positivo, de -180 a 180."""
+        if self._angulo_graus is None:
+            raise ValueError("O vetor nulo não possui ângulo definido.")
+        return self._angulo_graus
+
+    @property
+    def angulo_radianos(self) -> float:
+        """Retorna o ângulo com o eixo x positivo, em radianos, de -pi a pi."""
+        if self._angulo_radianos is None:
+            raise ValueError("O vetor nulo não possui ângulo definido.")
+        return self._angulo_radianos
+
+    @property
+    def vetor_direcional(self) -> "Vetor":
+        """Retorna o vetor unitário no mesmo sentido; rejeita o vetor nulo."""
+        if self._vetor_direcional is None:
+            raise ValueError("O vetor nulo não possui direção definida.")
+        return self._vetor_direcional
+
+    @staticmethod
+    def somar(u: "Vetor", v: "Vetor") -> "Vetor":
+        """Retorna a soma componente a componente, preservando os vetores originais."""
+        return Vetor(Ponto(0, 0), Ponto(u.x + v.x, u.y + v.y))
+
+    @staticmethod
+    def produto_escalar(u: "Vetor", v: "Vetor") -> float:
+        """Retorna u.x * v.x + u.y * v.y; preserva inteiros se as componentes forem inteiras."""
+        return u.x * v.x + u.y * v.y
+
+    @staticmethod
+    def produto_vetorial(u: "Vetor", v: "Vetor") -> float:
+        """Retorna a componente z do produto em 3D: u.x * v.y - u.y * v.x."""
+        return u.x * v.y - u.y * v.x
+
+    @staticmethod
+    def direcional(v: "Vetor") -> "Vetor":
+        """Retorna o vetor unitário no mesmo sentido; rejeita o vetor nulo."""
+        return v.vetor_direcional
+    
+    @staticmethod
+    def rotacionar(v: "Vetor", angulo: float) -> "Vetor":
+        """Retorna um novo vetor rotacionado em graus; positivo é anti-horário."""
+        rad = radians(angulo)
+        c, s = cos(rad), sin(rad)
+        x = v.x * c - v.y * s
+        y = v.x * s + v.y * c
+        return Vetor(Ponto(0, 0), Ponto(x, y))
+
+    @staticmethod
+    def girar_90_horario(v: "Vetor") -> "Vetor":
+        """Retorna (y, -x), sem trigonometria e preservando componentes inteiras."""
+        return Vetor(Ponto(0, 0), Ponto(v.y, -v.x))
+
+    @staticmethod
+    def girar_90_anti_horario(v: "Vetor") -> "Vetor":
+        """Retorna (-y, x), sem trigonometria e preservando componentes inteiras."""
+        return Vetor(Ponto(0, 0), Ponto(-v.y, v.x))
+
+    @staticmethod
+    def girar_180(v: "Vetor") -> "Vetor":
+        """Retorna (-x, -y), sem trigonometria e preservando componentes inteiras."""
+        return Vetor(Ponto(0, 0), Ponto(-v.x, -v.y))
