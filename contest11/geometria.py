@@ -130,6 +130,11 @@ class Vetor:
         return abs(Vetor.produto_vetorial(u, v)) <= Vetor._EPS
 
     @property
+    def eh_nulo(self) -> bool:
+        """Verifica se ambas as componentes são exatamente zero."""
+        return self.x == 0 and self.y == 0
+
+    @property
     def modulo(self) -> float:
         """Retorna o comprimento do vetor."""
         return self._modulo
@@ -159,6 +164,23 @@ class Vetor:
     def somar(u: "Vetor", v: "Vetor") -> "Vetor":
         """Retorna a soma componente a componente, preservando os vetores originais."""
         return Vetor(Ponto(0, 0), Ponto(u.x + v.x, u.y + v.y))
+
+    @staticmethod
+    def multiplicar_escalar(v: "Vetor", escalar: float) -> "Vetor":
+        """Multiplica as componentes pelo escalar, retornando um novo vetor."""
+        return Vetor(Ponto(0, 0), Ponto(v.x * escalar, v.y * escalar))
+
+    @staticmethod
+    def angulo_entre_radianos(u: "Vetor", v: "Vetor") -> float:
+        """Retorna o menor ângulo entre vetores, de 0 a pi; rejeita nulos."""
+        # Os unitários já estão calculados; evitam produtos com módulos grandes.
+        a, b = u.vetor_direcional, v.vetor_direcional
+        return atan2(abs(Vetor.produto_vetorial(a, b)), Vetor.produto_escalar(a, b))
+
+    @staticmethod
+    def angulo_entre_graus(u: "Vetor", v: "Vetor") -> float:
+        """Retorna o menor ângulo entre vetores, de 0 a 180 graus; rejeita nulos."""
+        return degrees(Vetor.angulo_entre_radianos(u, v))
 
     @staticmethod
     def produto_escalar(u: "Vetor", v: "Vetor") -> float:
