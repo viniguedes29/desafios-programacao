@@ -1,27 +1,26 @@
-from math import pi
 def main():
-    n = int(input())
-    raios = list(map(int, input().split()))
+    entrada = input().split("e")
+    a = int(entrada[0].split(".")[0])
+    p_dec = entrada[0].split(".")[1]
+    t_dec = len(p_dec)
+    exp = int(entrada[1])
 
-    a = 0
-    v = 0 
-    raios.sort()
-    if n %2 == 0:
-        a += raios[0]**2
-        for i in range(1, n):
-            if i%2 == 1:
-                v += raios[i]**2 - raios[i-1]**2
-            else:
-                a += raios[i]**2 - raios[i-1]**2
+    if exp == 0 and a != 0:
+        print(entrada[0])
+        return
+    elif a == 0:
+        print(0)
+        return
+    if a == 0:
+        a = ""
     else:
-        v += raios[0]**2
-        for i in range(1, n):
-            if i%2 == 1:
-                a += raios[i]**2 - raios[i-1]**2
-            else:
-                v += raios[i]**2 - raios[i-1]**2
+        a = str(a)
 
-    print(pi*v)
+    if exp >= t_dec:
+        print(a + (p_dec + "0" * exp)[:exp])
+    else:
+        print(a + (p_dec)[:exp] + "." + p_dec[exp:])
+
 
 if __name__ == "__main__":
     main()
